@@ -1,0 +1,64 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Build and Test Package
+
+on:
+  push:
+    branches: [ "release-**" ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.gitignore'
+      - '**/*.gitattributes'
+  pull_request:
+    branches: [ "main", "release-**" ]
+    paths: 
+    - '**.cs'
+    - '**.csproj'
+    - '**.sln'
+
+jobs:
+  build-and-test:
+    env:
+      BUILD_CONFIG: 'Release'
+      SOLUTION: '.\src\EVEClient.NET.Identity.sln'
+      UNIT_TESTS_PROJECT: '.\src\EVEClient.NET.Identity.UnitTests\EVEClient.NET.Identity.UnitTests.csproj'
+      
+    name: Build and Test Package
+    runs-on: ubuntu-latest
+            
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Restore dependencies
+      run: dotnet restore $SOLUTION
+      
+    - name: Build
+      run: dotnet build $SOLUTION --configuration $BUILD_CONFIG --no-restore
+      
+    - name: Test
+      run: dotnet test $UNIT_TESTS_PROJECT --configuration $BUILD_CONFIG -- NUnit.TestOutputXml=TestResults
+
+    - name: NUnit Tests Report
+      uses: daazarov/NUnitTestResultSummary@v1
+      if: github.event_name == 'pull_request'
+      with:
+        filename: src/EVEClient.NET.Identity.UnitTests/bin/Release/net8.0/TestResults/EVEClient.NET.Identity.UnitTests.xml
+        badge: true
+        format: markdown
+        output: file
+        passed: false
+        skipped: false
+        inconclusive: false        
+
+    - name: Add unit tests PR Comment
+      uses: marocchino/sticky-pull-request-comment@v2
+      if: github.event_name == 'pull_request'
+      with:
+        recreate: true
+        path: nunit-testresult-summary.md

@@ -1,0 +1,45 @@
+﻿@using EVEClient.NET.Identity
+@using EVEClient.NET.DataContract
+
+@model List<Header>
+
+@{
+    ViewData["Title"] = "Protected Page";
+}
+
+<h4>MailBox</h4>
+
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th scope="col">From</th>
+            <th scope="col">Read</th>
+            <th scope="col">Subject</th>
+            <th scope="col">Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var mail in @Model)
+        {
+            <tr>
+                <th scope="row">@mail.From</th>
+                <td>
+                    <div>
+                        @if (mail.IsRead == true)
+                        {
+                            <input class="form-check-input" type="checkbox" id="checkboxNoLabel" checked value="" aria-label="..." disabled>
+                        }
+                        else
+                        {
+                            <input class="form-check-input" type="checkbox" id="checkboxNoLabel" value="" aria-label="..." disabled>
+                        }
+                    </div>
+                </td>
+                <td>@mail.Subject</td>
+                <td>@mail.Timestamp</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
