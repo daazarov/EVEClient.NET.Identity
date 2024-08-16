@@ -1,0 +1,112 @@
+name: Release
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: package version
+
+defaults:
+  run:
+    shell: pwsh
+    
+env:
+  SOLUTION: '.\src\EVEClient.NET.Identity.sln'
+  PROJECT: '.\src\EVEClient.NET.Identity\EVEClient.NET.Identity.csproj'
+  NUNIT_TESTS_PROJECT: '.\src\EVEClient.NET.Identity.UnitTests\EVEClient.NET.Identity.UnitTests.csproj'
+  NUGET_DIRECTORY: ${{ github.workspace}}/nuget
+
+jobs:
+  validate_build_tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+        
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.SOLUTION }}
+      
+    - name: Build
+      run: dotnet build ${{ env.SOLUTION }} --configuration Release --no-restore
+      
+    - name: Test
+      run: dotnet test ${{ env.NUNIT_TESTS_PROJECT }} --configuration Release --no-restore
+
+  create_nuget:
+    runs-on: ubuntu-latest
+    needs: [ validate_build_tests ]
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    # Install the .NET SDK indicated in the global.json file
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    # Create the NuGet package in the folder from the environment variable NUGET_DIRECTORY
+    - name: Pack by input version
+      if: ${{ github.event_name == 'workflow_dispatch' }}
+      run: dotnet pack ${{ env.PROJECT }} --configuration Release --output ${{ env.NUGET_DIRECTORY }} /p:Version=${{ github.event.inputs.version }}
+      
+    - name: Pack by tag
+      if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+      run: dotnet pack ${{ env.PROJECT }} --configuration Release --output ${{ env.NUGET_DIRECTORY }} /p:Version=${{ github.ref_name }}
+
+    # Publish the NuGet package as an artifact, so they can be used in the following jobs
+    - name: Publish artifacts
+      uses: actions/upload-artifact@v4.3.3
+      with:
+        name: nugets
+        overwrite: true
+        if-no-files-found: error
+        path: |
+          ${{ env.NUGET_DIRECTORY }}/*.nupkg
+          ${{ env.NUGET_DIRECTORY }}/*.snupkg
+        retention-days: 1
+
+  validate_nuget:
+    runs-on: ubuntu-latest
+    needs: [ create_nuget ]
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        
+      - uses: actions/download-artifact@v4.1.7
+        with:
+          name: nugets
+          path: ${{ env.NUGET_DIRECTORY }}
+
+      - name: Install nuget validator
+        run: dotnet tool update Meziantou.Framework.NuGetPackageValidation.Tool --global
+
+      - name: Validate package
+        run: meziantou.validate-nuget-package (Get-ChildItem "${{ env.NUGET_DIRECTORY }}/*.nupkg") --excluded-rules="XmlDocumentationMustBePresent,IconMustBeSet,Symbols"
+  
+  publish_nuget:
+    runs-on: ubuntu-latest
+    needs: [ validate_nuget, validate_build_tests ]
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/download-artifact@v4.1.7
+      with:
+        name: nugets
+        path: ${{ env.NUGET_DIRECTORY }}
+    
+    - name: Deploy
+      run: |
+          foreach($file in (Get-ChildItem "${{ env.NUGET_DIRECTORY }}" -Recurse -Include *.nupkg)) {
+              dotnet nuget push $file --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          }
+   

@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageProjectUrl>https://github.com/daazarov/EVEClient.NET.Identity</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/daazarov/EVEClient.NET.Identity</RepositoryUrl>
+    <PackageTags>EVE, ESI, C#, API, AspNetCore, Authentication</PackageTags>
+    <Description>EVEClient.NET.Identity.Identity is OAuth 2.0 library for ASP.NET Core applications to provide out-of-the-box functionality for EVE SSO authentication.</Description>
+    <Title>EVE Online ESI SSO authenticator</Title>
+    <Authors>Dmitry Azarov</Authors>
+    <Copyright>Copyright ©2024 Dmitry Azarov</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EVEClient.NET" Version="8.0.1" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />
+  </ItemGroup>
+
+</Project>

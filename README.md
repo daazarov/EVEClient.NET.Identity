@@ -1,2 +1,2 @@
 # EVEClient.NET.Identity
-OAuth 2.0 framework for ASP.NET Core to provide out-of-the-box functionality for EVE SSO authorization.
+OAuth 2.0 library for ASP.NET Core applications to provide out-of-the-box functionality for EVE SSO authentication.
