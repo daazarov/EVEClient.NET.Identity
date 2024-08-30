@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Security.Claims;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -15,9 +16,9 @@ namespace EVEClient.NET.Identity.Services
     public abstract class SignInPostOAuthBehavior : PostOAuthBehavior
     {
         private readonly IRequiredClaimsValidator _requiredClaimsValidator;
-        private readonly IRemoteTokensHandler _remoteTokensHandler;
+        private readonly ITokenHandlerProvider _tokenHandlerProvider;
 
-        private Task? _signInTask = null!;
+        private Task? _signInTask = null;
 
         /// <summary>
         /// Gets the <see cref="IUserSession"/>
@@ -43,7 +44,7 @@ namespace EVEClient.NET.Identity.Services
             ILogger<PostOAuthBehavior> logger,
             IUserSession userSession,
             IOptionsMonitor<EveAuthenticationOAuthOptions> options,
-            IRemoteTokensHandler remoteTokensHandler,
+            ITokenHandlerProvider tokenHandlerProvider,
             IAccessTokenStore accessTokenStore,
             IRefreshTokenStore refreshTokenStore,
             IRequiredClaimsValidator requiredClaimsValidator) : base(logger, options)
@@ -56,7 +57,7 @@ namespace EVEClient.NET.Identity.Services
             RefreshTokenStore = refreshTokenStore;
 
             _requiredClaimsValidator = requiredClaimsValidator;
-            _remoteTokensHandler = remoteTokensHandler;
+            _tokenHandlerProvider = tokenHandlerProvider;
         }
 
         protected abstract Task<IEnumerable<Claim>> CreateUserClaimsAsync(OAuthClaimsContext context);
@@ -79,7 +80,7 @@ namespace EVEClient.NET.Identity.Services
             var sessionId = string.Empty;
 
             var currentUser = await UserSession.GetCurrentUserAsync();
-            if (currentUser != null && 
+            if (currentUser != null &&
                 currentUser.GetEveSubject().EnshureEveSubjectNormalized() == OAuthPrincipal.GetEveSubject().EnshureEveSubjectNormalized())
             {
                 sessionId = (await UserSession.GetCurrentSessionIdAsync())!;
@@ -172,7 +173,7 @@ namespace EVEClient.NET.Identity.Services
             {
                 throw new InvalidOperationException("SignInOnceAsync must be called at least once.");
             }
-            
+
             // Clear external cookies
             await Context.SignOutAsync((await Context.GetEveCookieExternalAuthenticationScheme()).Name);
 
@@ -190,7 +191,11 @@ namespace EVEClient.NET.Identity.Services
 
             if (OAuthTokens != null && OAuthTokens.Any(x => x.Name == "refresh_token"))
             {
-                await _remoteTokensHandler.RevokeRemoteToken("refresh_token", OAuthTokens.First(x => x.Name == "refresh_token").Value);
+                var handler = await _tokenHandlerProvider.GetRefreshTokenHandler(Context, Scheme.Name, false);
+                if (handler != null)
+                {
+                    await handler.RevokeToken(OAuthTokens.First(x => x.Name == "refresh_token").Value);
+                }
             }
 
             if (OAuthOptions.OAuthFailurePath.HasValue)

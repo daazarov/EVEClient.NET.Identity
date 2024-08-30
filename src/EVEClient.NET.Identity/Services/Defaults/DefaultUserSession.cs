@@ -58,26 +58,6 @@ namespace EVEClient.NET.Identity.Services
             return AuthenticationProperties?.GetUserSessionId();
         }
 
-        public async Task<string?> GetAccessTokenReferenceKeyAsync()
-        {
-            if (Principal == null || AuthenticationProperties == null)
-            {
-                await AuthenticateAsync();
-            }
-
-            return AuthenticationProperties?.GetEveAccessTokenReferenceKey();
-        }
-
-        public async Task<string?> GetRefreshTokenReferenceKeyAsync()
-        {
-            if (Principal == null || AuthenticationProperties == null)
-            {
-                await AuthenticateAsync();
-            }
-
-            return AuthenticationProperties?.GetEveRefreshTokenReferenceKey();
-        }
-
         public async Task<string?> GetCurrentSubjectIdAsync()
         {
             return (await GetCurrentUserAsync())?.GetEveSubject();

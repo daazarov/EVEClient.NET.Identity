@@ -10,6 +10,7 @@ using EVEClient.NET.Identity.Services;
 using EVEClient.NET.Identity.Stores;
 using EVEClient.NET.Identity.Validators;
 using EVEClient.NET.Identity.Defaults;
+using EVEClient.NET.Identity.OAuth;
 
 namespace EVEClient.NET.Identity.Extensions.DependencyInjection
 {
@@ -31,20 +32,22 @@ namespace EVEClient.NET.Identity.Extensions.DependencyInjection
             builder.Services.Configure(options);
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<EveAuthenticationOptions>, ConfigurePrimaryIdentitySelector>());
 
-            builder.AddRequiredIdentityServices();
+            builder.AddAccessTokenProvider<DefaultAccessTokenProvider>();
+            builder.AddScopeValidator<DefaultScopeAccessValidator>();
+            builder.AddAccessTokenHandler<DefaultEveAccessTokenHandler>(configured.CookieAuthenticationScheme);
+            builder.AddRefreshTokenHandler<DefaultEveRefreshTokenHandler>(configured.CookieAuthenticationScheme);
 
-            return builder
-                .AddAuthentication(configured, oauthOptions =>
-                {
-                    oauthOptions.Events = configured.OAuthEvents;
-                    oauthOptions.ClientId = configured.ClientId;
-                    oauthOptions.ClientSecret = configured.ClientSecret;
-                    oauthOptions.Scope.AddRange(configured.Scopes);
-                    oauthOptions.SignInScheme = configured.CookieExternalAuthenticationScheme;
-                    oauthOptions.CallbackPath = configured.CallbackPath;
-                    oauthOptions.Server = builder.Configuration.Server;
-                    oauthOptions.SaveTokens = true;
-                });
+            return builder.AddAuthentication(configured, oauthOptions =>
+            {
+                oauthOptions.Events = configured.OAuthEvents;
+                oauthOptions.ClientId = configured.ClientId;
+                oauthOptions.ClientSecret = configured.ClientSecret;
+                oauthOptions.Scope.AddRange(configured.Scopes);
+                oauthOptions.SignInScheme = configured.CookieExternalAuthenticationScheme;
+                oauthOptions.CallbackPath = configured.CallbackPath;
+                oauthOptions.Server = builder.Configuration.Server;
+                oauthOptions.SaveTokens = true;
+            });
         }
 
         /// <summary>
@@ -128,16 +131,15 @@ namespace EVEClient.NET.Identity.Extensions.DependencyInjection
             return builder;
         }
 
+        /// <summary>
+        /// Registers required services required for successfull authentication in EVE Online SSO.
+        /// </summary>
+        /// <param name="builder">The <see cref="IEsiClientConfigurationBuilder"/> builder.</param>
         public static IEsiClientConfigurationBuilder AddRequiredIdentityServices(this IEsiClientConfigurationBuilder builder)
         {
-            builder.AddAccessTokenProvider<DefaultAccessTokenProvider>();
-            builder.AddScopeValidator<DefaultScopeAccessValidator>();
-
             builder.Services.AddHttpContextAccessor();
-            builder.Services.AddHttpClient(EveConstants.SsoHttpClientName);
 
             builder.Services.TryAddScoped<ITokenService, DefaultTokenService>();
-            builder.Services.TryAddScoped<IRemoteTokensHandler, DefaultRemoteTokensHandler>();
             builder.Services.TryAddScoped<IUserSession, DefaultUserSession>();
             builder.Services.TryAddScoped<IUserDataStore, DefaultInMemoryUserDataStore>();
             builder.Services.TryAddScoped<IAccessTokenStore, DefaultAccessTokenStore>();
@@ -146,9 +148,74 @@ namespace EVEClient.NET.Identity.Extensions.DependencyInjection
             builder.Services.TryAddScoped<IRequiredClaimsValidator, DefaultRequiredClaimsValidator>();
             builder.Services.TryAddScoped<IEveUserAccessor<EveOnlineUser>, EveUserAccessor>();
             builder.Services.TryAddScoped<IPostOAuthBehavior, DefaultSignInPostOAuthBehavior>();
+            builder.Services.TryAddScoped<ITokenHandlerProvider, DefaultTokenHandlerProvider>();
 
             builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped(typeof(IUserClaimsTransformator), typeof(SubjectClaimNormalizator)));
             builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped(typeof(IUserClaimsTransformator), typeof(EveOnlineUserClaimsEnricher)));
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Registers access token handler for the specific authentication scheme name.
+        /// </summary>
+        /// <typeparam name="THandler">The <see cref="IAccessTokenHandler"/> implementation.</typeparam>
+        /// <param name="builder">The <see cref="IEsiClientConfigurationBuilder"/> builder.</param>
+        /// <param name="authenticationScheme">The authentication scheme name.</param>
+        public static IEsiClientConfigurationBuilder AddAccessTokenHandler<THandler>(this IEsiClientConfigurationBuilder builder, string authenticationScheme)
+            where THandler : class, IAccessTokenHandler
+        {
+            if (string.IsNullOrEmpty(authenticationScheme))
+            {
+                throw new ArgumentNullException(nameof(authenticationScheme));
+            }
+
+            builder.AddTokenHandler<THandler, AccessTokenResult>(configure =>
+            {
+                configure.HandlerType = typeof(THandler);
+                configure.Scheme = authenticationScheme;
+                configure.TokenType = EveConstants.TokenHandler.AccessTokenHandler;
+            });
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Registers refresh token handler for the specific authentication scheme name.
+        /// </summary>
+        /// <typeparam name="THandler">The <see cref="IRefreshTokenHandler"/> implementation.</typeparam>
+        /// <param name="builder">The <see cref="IEsiClientConfigurationBuilder"/> builder.</param>
+        /// <param name="authenticationScheme">The authentication scheme name.</param>
+        public static IEsiClientConfigurationBuilder AddRefreshTokenHandler<THandler>(this IEsiClientConfigurationBuilder builder, string authenticationScheme)
+            where THandler : class, IRefreshTokenHandler
+        {
+            if (string.IsNullOrEmpty(authenticationScheme))
+            {
+                throw new ArgumentNullException(nameof(authenticationScheme));
+            }
+
+            builder.AddTokenHandler<THandler, RefreshTokenResult>(configure =>
+            {
+                configure.HandlerType = typeof(THandler);
+                configure.Scheme = authenticationScheme;
+                configure.TokenType = EveConstants.TokenHandler.RefreshTokenHandler;
+            });
+
+            return builder;
+        }
+
+        public static IEsiClientConfigurationBuilder AddTokenHandler<THandler, TResult>(this IEsiClientConfigurationBuilder builder, Action<TokenHandlerConfiguration> configure)
+            where THandler : class, ITokenHandler<TResult>
+            where TResult : class
+        {
+            ArgumentNullException.ThrowIfNull(configure);
+
+            builder.Services.Configure<EveAuthenticationOptions>(o =>
+            {
+                o.AddTokenHandler(configure);
+            });
+
+            builder.Services.TryAddTransient<THandler>();
 
             return builder;
         }
@@ -163,6 +230,8 @@ namespace EVEClient.NET.Identity.Extensions.DependencyInjection
                 .AddApplicationCookieSchemes(options)
                 .AddOAuthCookieScheme(oauthOptions);
 
+            builder.AddRequiredIdentityServices();
+
             return builder;
         }
 
@@ -171,7 +240,7 @@ namespace EVEClient.NET.Identity.Extensions.DependencyInjection
             builder.AddCookie(options.CookieAuthenticationScheme);
             builder.AddCookie(options.CookieExternalAuthenticationScheme);
 
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<CookieAuthenticationOptions>, ConfigureCookieOptions>());
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IPostConfigureOptions<CookieAuthenticationOptions>, ConfigureEveCookieOptions>());
 
             return builder;
         }

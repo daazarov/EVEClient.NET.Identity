@@ -5,58 +5,13 @@ namespace EVEClient.NET.Identity.Extensions
     public static class AuthenticationPropertiesExtensions
     {
         private const string EveKeyPrefix = ".eve.";
-        private const string EveAccessTokenReferenceKey = "token.access";
-        private const string EveRefreshTokenReferenceKey = "token.refresh";
         private const string EveUserSessionKey = "session";
 
-        public static void StoreEveAccessTokenReferenceKey(this AuthenticationProperties properties, string referenceId)
-        {
-            ArgumentNullException.ThrowIfNull(properties);
-
-            if (referenceId.IsMissing())
-            {
-                throw new ArgumentException("ReferenceId cannot be null or empty.", nameof(referenceId));
-            }
-
-            properties.Items[EveKeyPrefix + EveAccessTokenReferenceKey] = referenceId;
-        }
-
-        public static void StoreEveRefreshTokenReferenceKey(this AuthenticationProperties properties, string referenceId)
-        {
-            ArgumentNullException.ThrowIfNull(properties);
-
-            if (referenceId.IsMissing())
-            {
-                throw new ArgumentException("ReferenceId cannot be null or empty.", nameof(referenceId));
-            }
-
-            properties.Items[EveKeyPrefix + EveRefreshTokenReferenceKey] = referenceId;
-        }
-
-        public static string? GetEveRefreshTokenReferenceKey(this AuthenticationProperties properties)
-        {
-            ArgumentNullException.ThrowIfNull(properties);
-
-            if (properties.Items.TryGetValue(EveKeyPrefix + EveRefreshTokenReferenceKey, out var value) && !string.IsNullOrEmpty(value))
-            {
-                return value;
-            }
-
-            return null;
-        }
-
-        public static string? GetEveAccessTokenReferenceKey(this AuthenticationProperties properties)
-        {
-            ArgumentNullException.ThrowIfNull(properties);
-
-            if (properties.Items.TryGetValue(EveKeyPrefix + EveAccessTokenReferenceKey, out var value) && !string.IsNullOrEmpty(value))
-            {
-                return value;
-            }
-
-            return null;
-        }
-
+        /// <summary>
+        /// Returns the value of a session identifier.
+        /// </summary>
+        /// <param name="properties">The <see cref="AuthenticationProperties"/> properties.</param>
+        /// <returns>The session id value.</returns>
         public static string? GetUserSessionId(this AuthenticationProperties properties)
         {
             ArgumentNullException.ThrowIfNull(properties);
@@ -69,6 +24,11 @@ namespace EVEClient.NET.Identity.Extensions
             return null;
         }
 
+        /// <summary>
+        /// Store the value of a session id.
+        /// </summary>
+        /// <param name="properties">The <see cref="AuthenticationProperties"/> properties.</param>
+        /// <param name="sessionId">The session identifier.</param>
         public static void StoreUserSessionId(this AuthenticationProperties properties, string sessionId)
         {
             ArgumentNullException.ThrowIfNull(properties);
@@ -79,6 +39,15 @@ namespace EVEClient.NET.Identity.Extensions
             }
 
             properties.Items[EveKeyPrefix + EveUserSessionKey] = sessionId;
+        }
+
+        /// <summary>
+        /// Checks that all necessary properties are present in the <see cref="AuthenticationProperties"/> for correct work of EVE authentication.
+        /// </summary>
+        /// <param name="properties">The <see cref="AuthenticationProperties"/> properties.</param>
+        public static bool ValidateForEveOnline(this AuthenticationProperties properties)
+        {
+            return properties.GetUserSessionId().IsPresent();
         }
     }
 }

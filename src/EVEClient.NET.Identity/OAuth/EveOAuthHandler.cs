@@ -13,7 +13,7 @@ using EVEClient.NET.Identity.Configuration;
 using EVEClient.NET.Identity.Utils;
 using EVEClient.NET.Identity.Validators;
 
-namespace EVEClient.NET.Identity
+namespace EVEClient.NET.Identity.OAuth
 {
     public class EveOAuthHandler : OAuthHandler<EveAuthenticationOAuthOptions>
     {

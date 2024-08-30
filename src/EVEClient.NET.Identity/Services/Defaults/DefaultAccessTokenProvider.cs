@@ -1,31 +1,26 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.AspNetCore.Http;
+
+using EVEClient.NET.Identity.Extensions;
 
 namespace EVEClient.NET.Identity.Services
 {
     public class DefaultAccessTokenProvider : IAccessTokenProvider
     {
         private readonly ITokenService _tokenService;
-        private readonly ILogger<DefaultAccessTokenProvider> _logger;
+        private readonly IHttpContextAccessor _contextAccessor;
         
-        public DefaultAccessTokenProvider(ITokenService tokenService, ILogger<DefaultAccessTokenProvider> logger)
+        public DefaultAccessTokenProvider(ITokenService tokenService, IHttpContextAccessor httpContextAccessor)
         { 
             _tokenService = tokenService;
-            _logger = logger;
+            _contextAccessor = httpContextAccessor;
         }
 
         public async Task<string> RequestAccessToken()
         {
-            var tokenResult = await _tokenService.RequestAccessToken();
-            if (tokenResult.TryGetToken(out var accessToken))
-            { 
-                return accessToken.Value;
-            }
+            if (_contextAccessor.HttpContext == null)
+                throw new NotSupportedException("DefaultAccessTokenProvider: Executing context exception, HttpContext can not be null.");
 
-            _logger.LogWarning(tokenResult.Error, "Failed to request access token. Reason: {reason}", tokenResult.ErrorMessage);
-
-            return string.Empty;
-
-            //throw new InvalidOperationException($"Failed to request access token. Reason: {tokenResult.ErrorMessage}", tokenResult.Error);
+            return await _contextAccessor.HttpContext.GetEveAccessTokenAsync() ?? string.Empty;
         }
     }
 }

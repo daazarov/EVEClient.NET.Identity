@@ -10,10 +10,15 @@ namespace EVEClient.NET.Identity
             public static PathString PostOAuthCallbackPath = "/signin-eveonline";
         }
 
-        public static string EVEAudience = "EVE Online";
+        public static class TokenHandler
+        {
+            public const string AccessTokenHandler = "token.handler.access";
+            public const string RefreshTokenHandler = "token.handler.refresh";
+        }
+
+        public static string EveAudience = "EVE Online";
         public static string AuthenticationType = "EVE Online";
         public static string SingOutKey = "eveonline.signout";
-        public static string SsoHttpClientName = "SsoEsiHttpClient";
 
         public static IEnumerable<string> RequiredClaimNames => new List<string>
         {

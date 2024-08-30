@@ -14,7 +14,7 @@ namespace EVEClient.NET.Identity.Services
     {
         private Exception? _initFailure;
         private bool _initSucceeded;
-        
+
         /// <summary>
         /// Gets the <see cref="ILogger"/>
         /// </summary>

@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -7,6 +8,8 @@ using EVEClient.NET.Identity.Configuration;
 using EVEClient.NET.Identity.Extensions;
 using EVEClient.NET.Identity.Stores;
 using EVEClient.NET.Identity.Validators;
+
+using System.Globalization;
 
 namespace EVEClient.NET.Identity.Services
 {
@@ -27,12 +30,12 @@ namespace EVEClient.NET.Identity.Services
             IUserSession userSession,
             IOptionsMonitor<EveAuthenticationOAuthOptions> oauthOptions,
             IOptionsMonitor<EveAuthenticationOptions> options,
-            IRemoteTokensHandler remoteTokensHandler,
+            ITokenHandlerProvider tokenHandlerProvider,
             IAccessTokenStore accessTokenStore,
             IRefreshTokenStore refreshTokenStore,
             IRequiredClaimsValidator requiredClaimsValidator,
             IEnumerable<IUserClaimsTransformator> claimsTransformations)
-            : base(logger, userSession, oauthOptions, remoteTokensHandler, accessTokenStore, refreshTokenStore, requiredClaimsValidator)
+            : base(logger, userSession, oauthOptions, tokenHandlerProvider, accessTokenStore, refreshTokenStore, requiredClaimsValidator)
         {
             ClaimsTransformations = claimsTransformations;
             Options = options.CurrentValue;
@@ -71,6 +74,18 @@ namespace EVEClient.NET.Identity.Services
 
         protected override async Task HandleOAuthTokensAsync(OAuthTokensContext context)
         {
+            if (Options.SaveTokens)
+            {
+                var authTokens = new List<AuthenticationToken>
+                {
+                    new AuthenticationToken { Name = "access_token", Value = context.AccessToken },
+                    new AuthenticationToken { Name = "refresh_token", Value = context.RefreshToken },
+                    new AuthenticationToken { Name = "expires_at", Value = context.ExpiresAt.ToString("o", CultureInfo.InvariantCulture) }
+                };
+
+                context.AuthenticationProperties.StoreTokens(authTokens);
+            }
+
             var accessToken = new AccessTokenData
             {
                 SubjectId = context.SubjectId,
@@ -98,9 +113,6 @@ namespace EVEClient.NET.Identity.Services
             {
                 throw new InvalidOperationException("Access and Resfresh token reference key can not be null or empty.");
             }
-
-            context.AuthenticationProperties.StoreEveAccessTokenReferenceKey(accessTokenKey);
-            context.AuthenticationProperties.StoreEveRefreshTokenReferenceKey(refreshTokenKey);
 
             await SignInOnceAsync(context.Principal, context.AuthenticationProperties);
         }

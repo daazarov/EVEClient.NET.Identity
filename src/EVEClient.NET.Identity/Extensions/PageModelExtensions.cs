@@ -9,6 +9,12 @@ namespace EVEClient.NET.Identity.Extensions
 {
     public static class PageModelExtensions
     {
+        /// <summary>
+        /// Returns an <see cref="ActionResult"/> that on execution invokes <see cref="M:HttpContext.ChallengeAsync"/>.
+        /// </summary>
+        /// <param name="page">The <see cref="PageModel"/>.</param>
+        /// <param name="returnUrl">The full path or absolute URI to be used as an http redirect after successful EVE authentication.</param>
+        /// <returns>The <see cref="Task"/> that present <see cref="ChallengeResult"/>.</returns>
         public static async Task<ChallengeResult> EveChallengeAsync(this PageModel page, string? returnUrl)
         {
             var provider = page.HttpContext.RequestServices.GetRequiredService<IAuthenticationSchemeProvider>();

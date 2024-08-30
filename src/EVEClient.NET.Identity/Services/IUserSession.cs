@@ -32,15 +32,5 @@ namespace EVEClient.NET.Identity.Services
         /// Return current authenticated user principal.
         /// </summary>
         Task<ClaimsPrincipal?> GetCurrentUserAsync();
-
-        /// <summary>
-        /// Return access token reference key from AuthenticationProperties.
-        /// </summary>
-        Task<string?> GetAccessTokenReferenceKeyAsync();
-
-        /// <summary>
-        /// Return refresh token reference key from AuthenticationProperties.
-        /// </summary>
-        Task<string?> GetRefreshTokenReferenceKeyAsync();
     }
 }

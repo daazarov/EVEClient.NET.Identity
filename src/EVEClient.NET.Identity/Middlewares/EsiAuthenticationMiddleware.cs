@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 
 using EVEClient.NET.Identity.Extensions;
 using EVEClient.NET.Identity.Services;
@@ -23,7 +22,12 @@ namespace EVEClient.NET.Identity
             _next = next;
         }
 
-        public async Task Invoke(HttpContext context, IUserSession userSession, IAccessTokenStore accessTokenStore, IRefreshTokenStore refreshTokenStore, ITokenService tokenService)
+        public async Task Invoke(
+            HttpContext context,
+            IUserSession userSession,
+            IAccessTokenStore accessTokenStore,
+            IRefreshTokenStore refreshTokenStore,
+            ITokenHandlerProvider tokenHandlerProvider)
         {
             ArgumentNullException.ThrowIfNull(context);
 
@@ -31,17 +35,29 @@ namespace EVEClient.NET.Identity
             {
                 if (context.SignOutCalled())
                 {
-                    var userSession = context.RequestServices.GetRequiredService<IUserSession>();
-
                     // Сlear user token data and revoke tokens on the ESI SSO side
                     // We can still retrieve the session data even after the HttpContext.SignOutAsync method call,
                     // since it's still the same scoped request and the authentication cookies have not been deleted yet.
-                    var sessionId = await userSession.GetCurrentSessionIdAsync();
-                    if (sessionId.IsPresent())
+                    if (context.User.GetEveIdentity()?.IsAuthenticated == true)
                     {
-                        await tokenService.RevokeRemoteToken("refresh_token");
-                        await accessTokenStore.RemoveAccessTokenAsync(sessionId: sessionId);
-                        await refreshTokenStore.RemoveRefreshTokenAsync(sessionId: sessionId);
+                        var refreshToken = await context.GetEveRefreshTokenAsync();
+                        var sessionId = await userSession.GetCurrentSessionIdAsync();
+
+                        if (refreshToken.IsPresent())
+                        {
+                            // there's no point in initializing of handler, we just want to send a revoke request
+                            var handler = await tokenHandlerProvider.GetRefreshTokenHandler(context, await context.GetEveCookieAuthenticationSchemeName(), initialize: false);
+                            if (handler != null)
+                            {
+                                await handler.RevokeToken(refreshToken);
+                            }
+                        }
+
+                        if (sessionId.IsPresent())
+                        {
+                            await accessTokenStore.RemoveAccessTokenAsync(sessionId: sessionId);
+                            await refreshTokenStore.RemoveRefreshTokenAsync(sessionId: sessionId);
+                        }
                     }
                 }
             });

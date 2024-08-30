@@ -5,16 +5,16 @@
         /// <summary>
         /// Gets or sets the list of granted scopes for the token.
         /// </summary>
-        public IReadOnlyList<string> GrantedScopes { get; set; } = default!;
+        public IReadOnlyList<string> GrantedScopes { get; init; } = new List<string>();
 
         /// <summary>
         /// Gets the expiration time of the token.
         /// </summary>
-        public DateTimeOffset Expires { get; set; }
+        public required DateTimeOffset Expires { get; init; }
 
         /// <summary>
         /// Gets the serialized representation of the token.
         /// </summary>
-        public string Value { get; set; } = default!;
+        public required string Value { get; init; }
     }
 }

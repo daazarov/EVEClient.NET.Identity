@@ -13,15 +13,13 @@ namespace EVEClient.NET.Identity.Validators
     {
         protected EveAuthenticationOAuthOptions Options { get; }
 
-        protected HttpClient Backchannel { get; }
+        protected HttpClient Backchannel  => Options.Backchannel;
 
-        protected string ClaimsIssuer { get; }
+        protected string ClaimsIssuer => Options.ClaimsIssuer!;
 
-        public DefaultReceivedAccessTokenValidator(IOptionsMonitor<EveAuthenticationOAuthOptions> options, IHttpClientFactory httpClientFactory)
+        public DefaultReceivedAccessTokenValidator(IOptionsMonitor<EveAuthenticationOAuthOptions> options)
         {
             Options = options.Get(EveAuthenticationCookieDefaults.OAuth.DefaultOAuthAuthenticationSchemeName);
-            Backchannel = httpClientFactory.CreateClient(EveConstants.SsoHttpClientName);
-            ClaimsIssuer = Options.ClaimsIssuer!;
         }
 
         public async Task<AccessTokenValidationResult> ValidateAsync(string accessToken)
@@ -38,21 +36,16 @@ namespace EVEClient.NET.Identity.Validators
                     // Your application should handle looking for both the host name and the URI in the iss claim
                     // <see href="https://docs.esi.evetech.net/docs/sso/validating_eve_jwt.html"/>
                     ValidIssuers = new List<string> { ClaimsIssuer, ClaimsIssuer.TrimHttpScheme() },
-                    ValidAudience = EveConstants.EVEAudience,
+                    ValidAudience = EveConstants.EveAudience,
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = jwk
                 };
 
-                var claims = new JwtSecurityTokenHandler().ValidateToken(accessToken, tokenValidationParams, out var validatedToken);
+                var validationResult = await new JwtSecurityTokenHandler().ValidateTokenAsync(accessToken, tokenValidationParams);
 
-                if (claims != null && validatedToken != null)
-                {
-                    return AccessTokenValidationResult.Success();
-                }
-                else
-                {
-                    return AccessTokenValidationResult.Failed("Failed to validate EVE security token.");
-                }
+                return validationResult.IsValid
+                    ? AccessTokenValidationResult.Success()
+                    : AccessTokenValidationResult.Failed(validationResult.Exception);
             }
             catch (Exception ex)
             {

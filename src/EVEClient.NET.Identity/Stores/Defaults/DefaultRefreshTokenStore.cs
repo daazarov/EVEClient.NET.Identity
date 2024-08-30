@@ -4,8 +4,8 @@ namespace EVEClient.NET.Identity.Stores
 {
     public class DefaultRefreshTokenStore : DefaultSsoUserDataStore<RefreshTokenData>, IRefreshTokenStore
     {
-        public DefaultRefreshTokenStore(IUserDataStore store, ILogger<DefaultRefreshTokenStore> logger)
-            : base(store, logger, "refresh_token")
+        public DefaultRefreshTokenStore(IUserDataStore store, ILogger<DefaultRefreshTokenStore> logger, IStorageKeyGenerator keyGenerator)
+            : base(store, logger, keyGenerator, "refresh_token")
         {
         }
 

@@ -1,30 +1,34 @@
-﻿using Microsoft.AspNetCore.Authentication.OAuth;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
+
+using EVEClient.NET.Identity.OAuth;
 
 namespace EVEClient.NET.Identity.Configuration
 {
     public class EveRenewAccessTokenFailureContext
     {
-        public Exception? Failure { get; init; } 
+        /// <summary>
+        /// Gets the exception for the failure if present.
+        /// </summary>
+        public Exception? Failure { get; init; }
 
-        public OAuthTokenResponse? OAuthTokenResponse { get; init; }
+        /// <summary>
+        /// Gets the <see cref="RefreshAccessTokenResponse"/>.
+        /// </summary>
+        public required RefreshAccessTokenResponse OAuthTokenResponse { get; init; }
 
-        public RenewAccessTokenFailureReason Reason { get; init; } = RenewAccessTokenFailureReason.Unknown;
+        /// <summary>
+        /// Gets the reason for the failure.
+        /// </summary>
+        public string Reason { get; init; } = "Unknown";
 
+        /// <summary>
+        /// Gets the <see cref="HttpContext"/>.
+        /// </summary>
         public required HttpContext HttpContext { get; init; }
 
+        /// <summary>
+        /// Gets the normalized subject (an EVE Character ID).
+        /// </summary>
         public string? SubjectId { get; init; }
-    }
-
-    public enum RenewAccessTokenFailureReason
-    { 
-        Unknown,
-        OAuthResponseFailed,
-        MissingRefreshTokenInStorage,
-        MissingAccessTokenInOAuthResponse,
-        MissingRefreshTokenInOAuthResponse,
-        MissingExpiresInOAuthResponse,
-        UserNotAuthenticated,
-        AccessTokenValidationFailed
     }
 }

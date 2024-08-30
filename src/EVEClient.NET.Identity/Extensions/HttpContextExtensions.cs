@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -74,36 +75,63 @@ namespace EVEClient.NET.Identity.Extensions
             throw new InvalidOperationException("No CookieExternalAuthenticationScheme configured on EVEAuthenticationOptions or scheme wasn't found.");
         }
 
-        public static async Task<EveAuthenticationContext?> GetCurrentEveAuthenticationContextAsync(this HttpContext context)
+        /// <summary>
+        /// Authenticates the request using the EVE scheme and returns the value for the access token.
+        /// </summary>
+        /// <param name="context">The <see cref="HttpContext"/>.</param>
+        /// <returns>Access token value.</returns>
+        /// <remarks>
+        /// Uses <see cref="AuthenticationProperties"/> if <see cref="EveAuthenticationOptions.SaveTokens"/> option is enabled. 
+        /// Otherwise the token will be retrieved from the <see cref="Stores.IAccessTokenStore"/>.
+        /// </remarks>
+        public static async Task<string?> GetEveAccessTokenAsync(this HttpContext context)
         {
-            var identity = context.User.GetEveIdentity();
-
-            if (identity is not null && identity.IsAuthenticated)
+            if (context.RequestServices.GetRequiredService<IOptions<EveAuthenticationOptions>>().Value.SaveTokens)
             {
-                var userSession = context.RequestServices.GetRequiredService<IUserSession>();
-
-                var sessionId = await userSession.GetCurrentSessionIdAsync() ?? throw new InvalidOperationException("Session ID can not be null or empty.");
-                var subjectId = await userSession.GetCurrentSubjectIdAsync() ?? throw new InvalidOperationException("Subject ID can not be null or empty.");
-                var accessTokenReferenceKey = await userSession.GetAccessTokenReferenceKeyAsync() ?? throw new InvalidOperationException("Access token reference key can not be null or empty.");
-                var refreshTokenReferenceKey = await userSession.GetRefreshTokenReferenceKeyAsync() ?? throw new InvalidOperationException("Refresh token reference key can not be null or empty.");
-
-                return new EveAuthenticationContext
-                { 
-                    SessionId = sessionId,
-                    SubjectId = subjectId,
-                    AccessTokenReferenceKey = accessTokenReferenceKey,
-                    RefreshTokenReferenceKey = refreshTokenReferenceKey
-                };
+                return await context.GetTokenAsync(await context.GetEveCookieAuthenticationSchemeName(), OAuthConstants.TokenTypes.AccessToken);
             }
 
-            return null;
+            var tokenResult = await context.GetTokenService().RequestAccessToken(context, await context.GetEveCookieAuthenticationSchemeName());
+
+            return tokenResult.TryGetToken(out var token) ? token.Value : null;
         }
 
+        /// <summary>
+        /// Authenticates the request using the EVE scheme and returns the value for the refresh token.
+        /// </summary>
+        /// <param name="context">The <see cref="HttpContext"/>.</param>
+        /// <returns>Refresh token value.</returns>
+        /// <remarks>
+        /// Uses <see cref="AuthenticationProperties"/> if <see cref="EveAuthenticationOptions.SaveTokens"/> option is enabled. 
+        /// Otherwise the token will be retrieved from the <see cref="Stores.IRefreshTokenStore"/>.
+        /// </remarks>
+        public static async Task<string?> GetEveRefreshTokenAsync(this HttpContext context)
+        {
+            if (context.RequestServices.GetRequiredService<IOptions<EveAuthenticationOptions>>().Value.SaveTokens)
+            {
+                return await context.GetTokenAsync(await context.GetEveCookieAuthenticationSchemeName(), OAuthConstants.TokenTypes.RefreshToken);
+            }
+
+            var tokenResult = await context.GetTokenService().RequestRefreshToken(context, await context.GetEveCookieAuthenticationSchemeName());
+
+            return tokenResult.TryGetToken(out var token) ? token : null;
+        }
+
+        /// <summary>
+        /// Sign out a principal for the EVE authentication scheme.
+        /// </summary>
+        /// <param name="context">The <see cref="HttpContext"/>.</param>
+        /// <returns>The <see cref="Task"/>.</returns>
         public static async Task EveSingOutAsync(this HttpContext context)
         {
             context.Items[EveConstants.SingOutKey] = true;
 
             await context.SignOutAsync(await context.GetEveCookieAuthenticationSchemeName());
+        }
+
+        private static ITokenService GetTokenService(this HttpContext context)
+        {
+            return context.RequestServices.GetRequiredService<ITokenService>();
         }
     }
 }

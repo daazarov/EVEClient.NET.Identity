@@ -6,6 +6,8 @@ namespace EVEClient.NET.Identity.Configuration
 {
     public class EveAuthenticationOptions
     {
+        private readonly List<TokenHandlerConfiguration> _tokenHandlerConfigurations = new();
+        
         public EveAuthenticationOptions()
         {
             OAuthEvents = new EveOAuthEvents();
@@ -60,6 +62,16 @@ namespace EVEClient.NET.Identity.Configuration
         public List<string> Scopes { get; set; } = new();
 
         /// <summary>
+        /// Defines whether EVE access and refresh tokens should be stored in the <see cref="Microsoft.AspNetCore.Authentication.AuthenticationProperties"/> after a successful authorization.
+        /// This property is set to <c>true</c> by default. 
+        /// </summary>
+        /// <remarks>
+        /// Set the property to <c>false</c> if you want to reduce the size of the final cookie, 
+        /// then getting the token will always happen via <see cref="Stores.IAccessTokenStore"/> and <see cref="Stores.IRefreshTokenStore"/>.
+        /// </remarks>
+        public bool SaveTokens { get; set; } = true;
+
+        /// <summary>
         /// Gets the <see cref="EveOAuthEvents"/> used to handle EVE OAuth authentication events.
         /// </summary>
         public EveOAuthEvents OAuthEvents { get; }
@@ -68,5 +80,32 @@ namespace EVEClient.NET.Identity.Configuration
         /// Allows you to customize additional claims for application identity from provided access token in addition to the mandatory (<see cref="EveConstants.RequiredClaimNames"/>).
         /// </summary>
         public IssuerClaimsOptions IncludeIssuerClaims { get; }
+
+        /// <summary>
+        /// Returns the handler configuration.
+        /// </summary>
+        public IEnumerable<TokenHandlerConfiguration> TokenHandlerConfigurations => _tokenHandlerConfigurations;
+
+        /// <summary>
+        /// Adds an <see cref="TokenHandlerConfiguration"/>.
+        /// </summary>
+        /// <param name="configure">Configures the handler.</param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void AddTokenHandler(Action<TokenHandlerConfiguration> configure)
+        {
+            ArgumentNullException.ThrowIfNull(configure);
+
+            var config = new TokenHandlerConfiguration();
+            configure(config);
+
+            config.Validate();
+
+            if (_tokenHandlerConfigurations.Contains(config))
+            {
+                throw new InvalidOperationException($"Token handler configuration with token type [{config.TokenType}] for scheme [{config.Scheme}] already exists.");
+            }
+
+            _tokenHandlerConfigurations.Add(config);
+        }
     }
 }

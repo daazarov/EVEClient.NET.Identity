@@ -4,8 +4,8 @@ namespace EVEClient.NET.Identity.Stores
 {
     public class DefaultAccessTokenStore : DefaultSsoUserDataStore<AccessTokenData>, IAccessTokenStore
     {
-        public DefaultAccessTokenStore(IUserDataStore store, ILogger<DefaultAccessTokenStore> logger)
-            : base(store, logger, "access_token")
+        public DefaultAccessTokenStore(IUserDataStore store, ILogger<DefaultAccessTokenStore> logger, IStorageKeyGenerator keyGenerator)
+            : base(store, logger, keyGenerator, "access_token")
         {
         }
 

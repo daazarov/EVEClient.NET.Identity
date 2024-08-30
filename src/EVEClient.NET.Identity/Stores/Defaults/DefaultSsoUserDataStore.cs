@@ -1,23 +1,22 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Text.Json;
 
-using EVEClient.NET.Extensions;
+using Microsoft.Extensions.Logging;
+
 using EVEClient.NET.Identity.Extensions;
-
-using Newtonsoft.Json;
 
 namespace EVEClient.NET.Identity.Stores
 {
     public class DefaultSsoUserDataStore<T>
     {
-        private const string StorePrefix = "EveSsoUserData";
-
         protected readonly IUserDataStore Store;
 
         protected readonly ILogger<DefaultSsoUserDataStore<T>> Logger;
 
+        protected readonly IStorageKeyGenerator KeyGenerator;
+
         protected string DataType;
 
-        protected DefaultSsoUserDataStore(IUserDataStore store, ILogger<DefaultSsoUserDataStore<T>> logger, string dataType)
+        protected DefaultSsoUserDataStore(IUserDataStore store, ILogger<DefaultSsoUserDataStore<T>> logger, IStorageKeyGenerator keyGenerator, string dataType)
         {
             ArgumentNullException.ThrowIfNull(store);
             ArgumentNullException.ThrowIfNull(logger);
@@ -29,6 +28,7 @@ namespace EVEClient.NET.Identity.Stores
 
             Store = store;
             Logger = logger;
+            KeyGenerator = keyGenerator;
             DataType = dataType;
         }
 
@@ -41,12 +41,10 @@ namespace EVEClient.NET.Identity.Stores
 
         protected virtual async Task<string> StoreItemAsync(string key, T item, string sessionId, string subjectId, DateTimeOffset creationDate, DateTimeOffset? expiration)
         {
-            var serializedItem = JsonConvert.SerializeObject(item);
-
             var userData = new EveUserData
             {
                 Key = key,
-                Data = serializedItem,
+                Data = JsonSerializer.Serialize(item),
                 Expiration = expiration,
                 SessionId = sessionId,
                 SubjectId = subjectId,
@@ -67,7 +65,7 @@ namespace EVEClient.NET.Identity.Stores
             {
                 try
                 {
-                    return JsonConvert.DeserializeObject<T>(userData.Data);
+                    return JsonSerializer.Deserialize<T>(userData.Data);
                 }
                 catch (Exception ex)
                 {
@@ -85,7 +83,7 @@ namespace EVEClient.NET.Identity.Stores
 
         protected virtual string GenerateKey(string sessionId, string subjectId)
         {
-            return (StorePrefix + ":" + subjectId + ":" + sessionId + ":" + DataType).SHA256();
+            return KeyGenerator.GenerateKey(sessionId, subjectId, DataType);
         }
     }
 }

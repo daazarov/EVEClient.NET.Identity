@@ -18,12 +18,14 @@ namespace EVEClient.NET.Identity.Utils
 
                     return date;
                 }
+
+                throw new InvalidCastException($"Failed to convert value ({ seconds }) to DateTimeOffset.");
             }
 
             throw new InvalidOperationException($"{nameof(seconds)} can not be null or empty.");
         }
 
-        public static DateTimeOffset FromExpiresInUnixTimeStampToExpiresAtDateTime(string expiresIn)
+        public static DateTimeOffset FromExpiresInToExpiresAtDateTime(string expiresIn)
         {
             if (expiresIn.IsPresent())
             {
@@ -35,6 +37,8 @@ namespace EVEClient.NET.Identity.Utils
 
                     return expiresAt;
                 }
+
+                throw new InvalidCastException($"Failed to convert value ({expiresIn}) to DateTimeOffset.");
             }
 
             throw new InvalidOperationException($"{nameof(expiresIn)} can not be null or empty.");
