@@ -27,7 +27,7 @@ namespace EVEClient.NET.Identity
             IUserSession userSession,
             IAccessTokenStore accessTokenStore,
             IRefreshTokenStore refreshTokenStore,
-            ITokenHandlerProvider tokenHandlerProvider)
+            ITokenHandlerProvider handlers)
         {
             ArgumentNullException.ThrowIfNull(context);
 
@@ -40,19 +40,13 @@ namespace EVEClient.NET.Identity
                     // since it's still the same scoped request and the authentication cookies have not been deleted yet.
                     if (context.User.GetEveIdentity()?.IsAuthenticated == true)
                     {
-                        var refreshToken = await context.GetEveRefreshTokenAsync();
-                        var sessionId = await userSession.GetCurrentSessionIdAsync();
-
-                        if (refreshToken.IsPresent())
+                        var handler = await handlers.GetRefreshTokenHandler(context, await context.GetEveCookieAuthenticationSchemeName());
+                        if (handler != null)
                         {
-                            // there's no point in initializing of handler, we just want to send a revoke request
-                            var handler = await tokenHandlerProvider.GetRefreshTokenHandler(context, await context.GetEveCookieAuthenticationSchemeName(), initialize: false);
-                            if (handler != null)
-                            {
-                                await handler.RevokeToken(refreshToken);
-                            }
+                            await handler.RevokeToken();
                         }
 
+                        var sessionId = await userSession.GetCurrentSessionIdAsync();
                         if (sessionId.IsPresent())
                         {
                             await accessTokenStore.RemoveAccessTokenAsync(sessionId: sessionId);

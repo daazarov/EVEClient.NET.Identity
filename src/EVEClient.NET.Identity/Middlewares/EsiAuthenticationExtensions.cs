@@ -2,10 +2,12 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using EVEClient.NET.Identity.Extensions;
 using EVEClient.NET.Identity.Stores;
 using EVEClient.NET.Identity.Services;
+using EVEClient.NET.Identity.Configuration;
 
 namespace EVEClient.NET.Identity
 {
@@ -72,9 +74,10 @@ namespace EVEClient.NET.Identity
                 var serviceProvider = scope.ServiceProvider;
 
                 var logger = app.ApplicationServices.GetRequiredService<ILoggerFactory>().CreateLogger("EVEClient.NET.Identity.Startup");
-
+                var options = app.ApplicationServices.GetRequiredService<IOptions<EveAuthenticationOptions>>().Value;
                 var userDataStore = serviceProvider.GetRequiredService<IUserDataStore>();
-                if (userDataStore.GetType().FullName == typeof(DefaultInMemoryUserDataStore).FullName)
+
+                if (!options.UseCookieStorage && userDataStore.GetType().FullName == typeof(DefaultInMemoryUserDataStore).FullName)
                 {
                     logger.LogWarning("You are using the in-memory version of the user data store. " +
                         "This will store refresh and access tokens in memory only. " +

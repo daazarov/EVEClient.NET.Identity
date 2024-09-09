@@ -1,4 +1,5 @@
 ﻿using EVEClient.NET;
+using EVEClient.NET.DataContract;
 using EVEClient.NET.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,13 +20,13 @@ namespace QuickStart.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var mails = await _logicAccessor.MailLogic.MailHeaders(_userAccessor.User!.CharacterId);
+            var mails = await _logicAccessor.MailLogic.MailHeaders(_userAccessor.Current!.CharacterId);
             if (mails.Success)
             { 
                 return View(mails.Data);
             }
 
-            return BadRequest();
+            return View(new List<Header>());
         }
     }
 }

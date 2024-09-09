@@ -1,41 +1,35 @@
 ﻿using System.Security.Claims;
 
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using EVEClient.NET.Identity.Configuration;
 using EVEClient.NET.Identity.Extensions;
-using EVEClient.NET.Identity.Stores;
 using EVEClient.NET.Identity.Validators;
-
-using System.Globalization;
 
 namespace EVEClient.NET.Identity.Services
 {
-    public class DefaultSignInPostOAuthBehavior : SignInPostOAuthBehavior
+    public class DefaultSignInPostOAuthBehavior : BaseSignInPostOAuthBehavior
     {
         /// <summary>
         /// Gets the collection of <see cref="IUserClaimsTransformator"/>
         /// </summary>
-        protected readonly IEnumerable<IUserClaimsTransformator> ClaimsTransformations;
+        protected IEnumerable<IUserClaimsTransformator> ClaimsTransformations { get; }
 
         /// <summary>
         /// Gets the <see cref="EveAuthenticationOptions"/>.
         /// </summary>
-        protected readonly EveAuthenticationOptions Options;
+        protected EveAuthenticationOptions Options { get; }
 
         public DefaultSignInPostOAuthBehavior(
-            ILogger<PostOAuthBehavior> logger,
+            ILogger<BasePostOAuthBehavior> logger,
             IUserSession userSession,
             IOptionsMonitor<EveAuthenticationOAuthOptions> oauthOptions,
             IOptionsMonitor<EveAuthenticationOptions> options,
             ITokenHandlerProvider tokenHandlerProvider,
-            IAccessTokenStore accessTokenStore,
-            IRefreshTokenStore refreshTokenStore,
             IRequiredClaimsValidator requiredClaimsValidator,
             IEnumerable<IUserClaimsTransformator> claimsTransformations)
-            : base(logger, userSession, oauthOptions, tokenHandlerProvider, accessTokenStore, refreshTokenStore, requiredClaimsValidator)
+            : base(logger, userSession, oauthOptions, tokenHandlerProvider, requiredClaimsValidator)
         {
             ClaimsTransformations = claimsTransformations;
             Options = options.CurrentValue;
@@ -72,49 +66,33 @@ namespace EVEClient.NET.Identity.Services
             return claimContext.IssuedClaims;
         }
 
-        protected override async Task HandleOAuthTokensAsync(OAuthTokensContext context)
+        protected override async Task HandleOAuthTokensAsync(PostOAuthSingInBehaviorResult result, OAuthTokensContext context)
         {
-            if (Options.SaveTokens)
+            if (!result.Succeeded) return;
+
+            var accessTokenHandler = await TokenHandlerProvider.GetAccessTokenHandler(HttpContext, Scheme.Name);
+            if (accessTokenHandler != null && accessTokenHandler is IStoreTokenHandler<AccessTokenStoreRequest> storeHandler)
             {
-                var authTokens = new List<AuthenticationToken>
+                // singin procces is not completed yet, so initialize with prepared authentication context manualy
+                await accessTokenHandler.InitializeAsync(HttpContext, result.Principal, result.AuthenticationProperties);
+
+                await storeHandler.StoreTokensAsync(new AccessTokenStoreRequest
                 {
-                    new AuthenticationToken { Name = "access_token", Value = context.AccessToken },
-                    new AuthenticationToken { Name = "refresh_token", Value = context.RefreshToken },
-                    new AuthenticationToken { Name = "expires_at", Value = context.ExpiresAt.ToString("o", CultureInfo.InvariantCulture) }
-                };
-
-                context.AuthenticationProperties.StoreTokens(authTokens);
+                    SubjectId = SubjectId,
+                    AccessToken = context.AccessToken,
+                    RefreshToken = context.RefreshToken,
+                    IssuedAt = context.IssuedAt,
+                    ExpiresAt = context.ExpiresAt,
+                    GrantedScopes = [.. context.Scopes]
+                });
             }
-
-            var accessToken = new AccessTokenData
+            else
             {
-                SubjectId = context.SubjectId,
-                TokenType = "access_token",
-                Value = context.AccessToken,
-                GrantedScopes = context.Scopes.ToList(),
-                CreationTime = context.IssuedAt,
-                ExpiresAt = context.ExpiresAt,
-                SessionId = context.SessionId,
-            };
-
-            var refreshToken = new RefreshTokenData
-            {
-                SubjectId = context.SubjectId,
-                TokenType = "refresh_token",
-                Value = context.RefreshToken,
-                SessionId = context.SessionId,
-                CreationTime = context.IssuedAt,
-            };
-
-            var accessTokenKey = await AccessTokenStore.StoreAccessTokenAsync(accessToken);
-            var refreshTokenKey = await RefreshTokenStore.StoreRefreshTokenAsync(refreshToken);
-
-            if (accessTokenKey.IsMissing() || refreshTokenKey.IsMissing())
-            {
-                throw new InvalidOperationException("Access and Resfresh token reference key can not be null or empty.");
+                Logger.LogWarning(
+                    "Access token handler don't realize IStoreTokenHandler interface " +
+                    "or no access token handler is configured to request for the scheme: {authenticationScheme}. " +
+                    "The tokens will not be saved in the storage.", Scheme.Name);
             }
-
-            await SignInOnceAsync(context.Principal, context.AuthenticationProperties);
         }
 
         protected virtual async Task TransformClaimsAsync(ClaimsTransformationContext context)

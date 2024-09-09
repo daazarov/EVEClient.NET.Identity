@@ -50,7 +50,7 @@ namespace EVEClient.NET.Identity.Stores
             }
             else
             {
-                throw new InvalidOperationException("EveUserDataFilter can not be empty.");
+                throw new InvalidOperationException("EveUserDataFilter can not be empty. You need to specify session id and/or subject id.");
             }
 
             foreach (var item in items)

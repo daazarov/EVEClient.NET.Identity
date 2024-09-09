@@ -19,7 +19,7 @@ namespace EVEClient.NET.Identity.Validators
 
         public DefaultReceivedAccessTokenValidator(IOptionsMonitor<EveAuthenticationOAuthOptions> options)
         {
-            Options = options.Get(EveAuthenticationCookieDefaults.OAuth.DefaultOAuthAuthenticationSchemeName);
+            Options = options.Get(EveAuthenticationCookieDefaults.OAuth.DefaultOAuthSchemeName);
         }
 
         public async Task<AccessTokenValidationResult> ValidateAsync(string accessToken)

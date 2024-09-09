@@ -23,7 +23,7 @@ namespace EVEClient.NET.Identity.Services
             _options = options.Value;
         }
 
-        public async Task<IAccessTokenHandler?> GetAccessTokenHandler(HttpContext context, string authenticationScheme, bool initialize = true)
+        public async Task<IAccessTokenHandler?> GetAccessTokenHandler(HttpContext context, string authenticationScheme)
         {
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(authenticationScheme);
@@ -36,28 +36,26 @@ namespace EVEClient.NET.Identity.Services
                 }
             }
 
-            var configuration = _options.TokenHandlerConfigurations.FirstOrDefault(x => x.Scheme == authenticationScheme && x.TokenType == EveConstants.TokenHandler.AccessTokenHandler);
-            if (configuration == null)
-            {
-                return null;
-            }
-
-            if (TryCreateHandler<IAccessTokenHandler>(context.RequestServices, configuration.HandlerType, out var handler) && initialize)
+            var handler = await CreateAccessTokenHandler(context, authenticationScheme);
+            if (handler != null)
             {
                 var authenticationResult = await AuthenticateAsync(context, authenticationScheme);
 
                 await handler.InitializeAsync(context, authenticationResult.Principal, authenticationResult.Properties);
 
-                if (values != null)
-                    values.Add(handler);
-                else
-                    _handlerMap[authenticationScheme] = [handler];
+                if (authenticationResult.Succeeded)
+                {
+                    if (values != null)
+                        values.Add(handler);
+                    else
+                        _handlerMap[authenticationScheme] = [handler];
+                }
             }
 
             return handler;
         }
 
-        public async Task<IRefreshTokenHandler?> GetRefreshTokenHandler(HttpContext context, string authenticationScheme, bool initialize = true)
+        public async Task<IRefreshTokenHandler?> GetRefreshTokenHandler(HttpContext context, string authenticationScheme)
         {
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(authenticationScheme);
@@ -70,27 +68,63 @@ namespace EVEClient.NET.Identity.Services
                 }
             }
 
-            var configuration = _options.TokenHandlerConfigurations
-                .FirstOrDefault(x => x.Scheme == authenticationScheme && x.TokenType == EveConstants.TokenHandler.RefreshTokenHandler);
-            if (configuration == null)
-            {
-                return null;
-            }
-
-            // cache the handler for request only if it needs to be initialized
-            if (TryCreateHandler<IRefreshTokenHandler>(context.RequestServices, configuration.HandlerType, out var handler) && initialize)
+            var handler = await CreateRefreshTokenHandler(context, authenticationScheme);
+            if (handler != null)
             {
                 var authenticationResult = await AuthenticateAsync(context, authenticationScheme);
 
                 await handler.InitializeAsync(context, authenticationResult.Principal, authenticationResult.Properties);
 
-                if (values != null)
-                    values.Add(handler);
-                else
-                    _handlerMap[authenticationScheme] = [handler];
+                if (authenticationResult.Succeeded)
+                {
+                    if (values != null)
+                        values.Add(handler);
+                    else
+                        _handlerMap[authenticationScheme] = [handler];
+                }
             }
 
             return handler;
+        }
+
+        private Task<IAccessTokenHandler?> CreateAccessTokenHandler(HttpContext context, string authenticationScheme)
+        {
+            ArgumentNullException.ThrowIfNull(authenticationScheme);
+
+            var configuration = _options.TokenHandlerConfigurations.FirstOrDefault(x => x.Scheme == authenticationScheme && x.TokenType == EveConstants.TokenHandler.AccessTokenHandler);
+            if (configuration == null)
+            {
+                return Task.FromResult<IAccessTokenHandler?>(null);
+            }
+
+            TryCreateHandler<IAccessTokenHandler>(context.RequestServices, configuration.HandlerType, out var handler);
+
+            if (handler != null)
+            {
+                handler.Scheme = authenticationScheme;
+            }
+
+            return Task.FromResult(handler);
+        }
+
+        private Task<IRefreshTokenHandler?> CreateRefreshTokenHandler(HttpContext context, string authenticationScheme)
+        {
+            ArgumentNullException.ThrowIfNull(authenticationScheme);
+
+            var configuration = _options.TokenHandlerConfigurations.FirstOrDefault(x => x.Scheme == authenticationScheme && x.TokenType == EveConstants.TokenHandler.RefreshTokenHandler);
+            if (configuration == null)
+            {
+                return Task.FromResult<IRefreshTokenHandler?>(null);
+            }
+
+            TryCreateHandler<IRefreshTokenHandler>(context.RequestServices, configuration.HandlerType, out var handler);
+            
+            if (handler != null)
+            { 
+                handler.Scheme = authenticationScheme;
+            }
+
+            return Task.FromResult(handler);
         }
 
         private async Task<AuthenticateResult> AuthenticateAsync(HttpContext context, string authenticationScheme)

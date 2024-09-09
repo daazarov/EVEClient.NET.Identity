@@ -7,21 +7,21 @@ using EVEClient.NET.Identity.Services;
 
 namespace EVEClient.NET.Identity
 {
-    public abstract class UserAccessorBase<TUser> : IEveUserAccessor<TUser>, IFromClaimPrinciple<TUser>
+    public abstract class EveUserAccessorBase<TUser> : IEveUserAccessor<TUser>, IFromClaimPrinciple<TUser>
         where TUser : class, IEveUser
     {
         private readonly HttpContext _context;
 
         public bool IsAuthenticated => _context.User.GetEveIdentity()?.IsAuthenticated == true;
 
-        public UserAccessorBase(IHttpContextAccessor contextAccessor)
+        public EveUserAccessorBase(IHttpContextAccessor contextAccessor)
         {
             ArgumentNullException.ThrowIfNull(contextAccessor);
 
             _context = contextAccessor.HttpContext ?? throw new InvalidOperationException("HttpContext can not be null.");
         }
 
-        public virtual TUser? User
+        public virtual TUser? Current
         {
             get
             {

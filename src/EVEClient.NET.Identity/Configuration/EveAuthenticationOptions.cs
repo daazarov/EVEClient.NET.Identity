@@ -62,14 +62,11 @@ namespace EVEClient.NET.Identity.Configuration
         public List<string> Scopes { get; set; } = new();
 
         /// <summary>
-        /// Defines whether EVE access and refresh tokens should be stored in the <see cref="Microsoft.AspNetCore.Authentication.AuthenticationProperties"/> after a successful authorization.
-        /// This property is set to <c>true</c> by default. 
+        /// Defines whether EVE access and refresh tokens should be stored in the <see cref="Microsoft.AspNetCore.Authentication.AuthenticationProperties"/> after a successful authentication. 
+        /// Otherwise, <see cref="Stores.IAccessTokenStore"/> and <see cref="Stores.IRefreshTokenStore"/> storages will be used.
         /// </summary>
-        /// <remarks>
-        /// Set the property to <c>false</c> if you want to reduce the size of the final cookie, 
-        /// then getting the token will always happen via <see cref="Stores.IAccessTokenStore"/> and <see cref="Stores.IRefreshTokenStore"/>.
-        /// </remarks>
-        public bool SaveTokens { get; set; } = true;
+        /// <remarks>This property is set to <c>true</c> by default.</remarks>
+        public bool UseCookieStorage { get; set; } = true;
 
         /// <summary>
         /// Gets the <see cref="EveOAuthEvents"/> used to handle EVE OAuth authentication events.

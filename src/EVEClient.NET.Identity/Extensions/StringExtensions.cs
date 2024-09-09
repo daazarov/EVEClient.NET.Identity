@@ -50,7 +50,7 @@ namespace EVEClient.NET.Identity.Extensions
             newQueryString.Remove(key);
 
             return newQueryString.Count > 0
-                ? String.Format("{0}?{1}", pagePathWithoutQueryString, newQueryString)
+                ? string.Format("{0}?{1}", pagePathWithoutQueryString, newQueryString)
                 : pagePathWithoutQueryString;
         }
     }

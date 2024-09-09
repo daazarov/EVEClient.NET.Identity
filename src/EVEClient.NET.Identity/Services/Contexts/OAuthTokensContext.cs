@@ -1,19 +1,11 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 using Microsoft.AspNetCore.Authentication;
 
-using EVEClient.NET.Identity.Extensions;
-
 namespace EVEClient.NET.Identity.Services
 {
-    public class OAuthTokensContext : SignInBehaviorContext
+    public class OAuthTokensContext
     {
-        /// <summary>
-        /// Gets the subject id from authenticated ClaimsPrincipal (aka EVE character ID).
-        /// </summary>
-        public string SubjectId { get; }
-
         /// <summary>
         /// Gets the access token issued by the OAuth provider.
         /// </summary>
@@ -33,7 +25,7 @@ namespace EVEClient.NET.Identity.Services
         public string RefreshToken { get; }
 
         /// <summary>
-        /// Gets the validatity lifetime of the token.
+        /// Gets the creation date.
         /// </summary>
         public DateTimeOffset IssuedAt { get; }
 
@@ -47,20 +39,8 @@ namespace EVEClient.NET.Identity.Services
         /// </summary>
         public IReadOnlyCollection<string> Scopes { get; }
 
-        /// <summary>
-        /// Gets the created claims principal.
-        /// </summary>
-        public ClaimsPrincipal Principal { get; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="tokens">Tokens from <see cref="AuthenticationProperties"/></param>
-        /// <param name="principal">The claims-principal with authenticated user identities.</param>
-        public OAuthTokensContext(SignInBehaviorContext context, ClaimsPrincipal principal, IEnumerable<AuthenticationToken> tokens) : base(context)
+        public OAuthTokensContext(IEnumerable<AuthenticationToken> tokens)
         {
-            ArgumentNullException.ThrowIfNull(principal);
-
             AccessToken = tokens.First(x => x.Name.Equals("access_token", StringComparison.OrdinalIgnoreCase)).Value;
             RefreshToken = tokens.First(x => x.Name.Equals("refresh_token", StringComparison.OrdinalIgnoreCase)).Value;
             TokenType = tokens.First(x => x.Name.Equals("token_type", StringComparison.OrdinalIgnoreCase)).Value;
@@ -74,9 +54,6 @@ namespace EVEClient.NET.Identity.Services
                     .Where(x => x.Type.Equals(EveClaims.Issuers.Scope, StringComparison.OrdinalIgnoreCase))
                     .Select(claim => claim.Value)
                 );
-
-            Principal = principal;
-            SubjectId = Principal.GetEveSubject();
         }
     }
 }

@@ -81,16 +81,11 @@ namespace EVEClient.NET.Identity.Extensions
         /// <param name="context">The <see cref="HttpContext"/>.</param>
         /// <returns>Access token value.</returns>
         /// <remarks>
-        /// Uses <see cref="AuthenticationProperties"/> if <see cref="EveAuthenticationOptions.SaveTokens"/> option is enabled. 
+        /// Uses <see cref="AuthenticationProperties"/> if <see cref="EveAuthenticationOptions.UseCookieStorage"/> option is enabled. 
         /// Otherwise the token will be retrieved from the <see cref="Stores.IAccessTokenStore"/>.
         /// </remarks>
         public static async Task<string?> GetEveAccessTokenAsync(this HttpContext context)
         {
-            if (context.RequestServices.GetRequiredService<IOptions<EveAuthenticationOptions>>().Value.SaveTokens)
-            {
-                return await context.GetTokenAsync(await context.GetEveCookieAuthenticationSchemeName(), OAuthConstants.TokenTypes.AccessToken);
-            }
-
             var tokenResult = await context.GetTokenService().RequestAccessToken(context, await context.GetEveCookieAuthenticationSchemeName());
 
             return tokenResult.TryGetToken(out var token) ? token.Value : null;
@@ -102,16 +97,11 @@ namespace EVEClient.NET.Identity.Extensions
         /// <param name="context">The <see cref="HttpContext"/>.</param>
         /// <returns>Refresh token value.</returns>
         /// <remarks>
-        /// Uses <see cref="AuthenticationProperties"/> if <see cref="EveAuthenticationOptions.SaveTokens"/> option is enabled. 
+        /// Uses <see cref="AuthenticationProperties"/> if <see cref="EveAuthenticationOptions.UseCookieStorage"/> option is enabled. 
         /// Otherwise the token will be retrieved from the <see cref="Stores.IRefreshTokenStore"/>.
         /// </remarks>
         public static async Task<string?> GetEveRefreshTokenAsync(this HttpContext context)
         {
-            if (context.RequestServices.GetRequiredService<IOptions<EveAuthenticationOptions>>().Value.SaveTokens)
-            {
-                return await context.GetTokenAsync(await context.GetEveCookieAuthenticationSchemeName(), OAuthConstants.TokenTypes.RefreshToken);
-            }
-
             var tokenResult = await context.GetTokenService().RequestRefreshToken(context, await context.GetEveCookieAuthenticationSchemeName());
 
             return tokenResult.TryGetToken(out var token) ? token : null;

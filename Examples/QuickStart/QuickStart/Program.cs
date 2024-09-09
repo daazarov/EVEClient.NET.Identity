@@ -23,6 +23,7 @@ namespace QuickStart
                                 option.ClientSecret = esiSection.GetValue<string>("ClientSecret")!;
                                 option.CallbackPath = esiSection.GetValue<string>("CallbackPath")!;
                                 option.Scopes.AddRange(esiSection.GetSection("Scopes").Get<string[]>()!);
+                                //option.UseCookieStorage = false;
 
                                 option.OAuthEvents.OnFailedRenewAccessToken = OnFailedRenewAccessTokenListener;
                             });
@@ -56,7 +57,6 @@ namespace QuickStart
         {
             // forced redirect to the login page (Account/Login) to get a new set of tokens
             await context.HttpContext.ChallengeAsync(await context.HttpContext.GetEveCookieAuthenticationSchemeName());
-            await context.HttpContext.Response.StartAsync();
         }
     }
 }

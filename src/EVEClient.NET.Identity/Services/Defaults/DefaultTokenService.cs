@@ -19,7 +19,7 @@ namespace EVEClient.NET.Identity.Services
             var tokenHandler = await _tokenHandlerProvider.GetRefreshTokenHandler(context, authenticationScheme);
             if (tokenHandler != null)
             {
-                return await tokenHandler.HandleTokenRequest();
+                return await tokenHandler.RequestTokenAsync();
             }
 
             throw new InvalidOperationException($"No refresh token handler is configured to request for the scheme: {authenticationScheme}");
@@ -33,7 +33,7 @@ namespace EVEClient.NET.Identity.Services
             var tokenHandler = await _tokenHandlerProvider.GetAccessTokenHandler(context, authenticationScheme);
             if (tokenHandler != null)
             {
-                return await tokenHandler.HandleTokenRequest();
+                return await tokenHandler.RequestTokenAsync();
             }
 
             throw new InvalidOperationException($"No access token handler is configured to request for the scheme: {authenticationScheme}");

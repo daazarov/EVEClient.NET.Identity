@@ -19,7 +19,7 @@ namespace EVEClient.NET.Identity.Extensions
             var provider = controller.HttpContext.RequestServices.GetRequiredService<IAuthenticationSchemeProvider>();
             var schemes = await provider.GetAllSchemesAsync();
 
-            var schemeName = schemes.FirstOrDefault(x => x.Name == EveAuthenticationCookieDefaults.OAuth.DefaultOAuthAuthenticationSchemeName)?.Name;
+            var schemeName = schemes.FirstOrDefault(x => x.Name == EveAuthenticationCookieDefaults.OAuth.DefaultOAuthSchemeName)?.Name;
             if (schemeName.IsPresent())
             {
                 return controller.EveChallenge(returnUrl, schemeName);

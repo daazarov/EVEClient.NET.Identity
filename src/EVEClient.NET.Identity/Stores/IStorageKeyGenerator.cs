@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace EVEClient.NET.Identity.Stores
+﻿namespace EVEClient.NET.Identity.Stores
 {
     public interface IStorageKeyGenerator
     {
-        string GenerateKey(string subjectId, string sessionId, string dataType);
+        string GenerateKey(int length = 32);
     }
 }

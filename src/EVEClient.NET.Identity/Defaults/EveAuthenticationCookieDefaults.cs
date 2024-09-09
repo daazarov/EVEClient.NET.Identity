@@ -7,8 +7,8 @@
 
         public static class OAuth
         {
-            public static string DefaultOAuthAuthenticationSchemeName = "EVEOnline";
-            public static string DefaultOAuthAuthenticationSchemeDisplayName = "EVEOnline";
+            public static string DefaultOAuthSchemeName = "EVEOnline";
+            public static string DefaultOAuthSchemeDisplayName = "EVEOnline";
         }
     }
 }

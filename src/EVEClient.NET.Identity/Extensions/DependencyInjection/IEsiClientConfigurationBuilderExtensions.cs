@@ -34,8 +34,17 @@ namespace EVEClient.NET.Identity.Extensions.DependencyInjection
 
             builder.AddAccessTokenProvider<DefaultAccessTokenProvider>();
             builder.AddScopeValidator<DefaultScopeAccessValidator>();
-            builder.AddAccessTokenHandler<DefaultEveAccessTokenHandler>(configured.CookieAuthenticationScheme);
-            builder.AddRefreshTokenHandler<DefaultEveRefreshTokenHandler>(configured.CookieAuthenticationScheme);
+
+            if (configured.UseCookieStorage)
+            {
+                builder.AddAccessTokenHandler<DefaultEveAccessTokenCookieHandler>(configured.CookieAuthenticationScheme);
+                builder.AddRefreshTokenHandler<DefaultEveRefreshTokenCookieHandler>(configured.CookieAuthenticationScheme);
+            }
+            else
+            {
+                builder.AddAccessTokenHandler<DefaultEveAccessTokenStorageHandler>(configured.CookieAuthenticationScheme);
+                builder.AddRefreshTokenHandler<DefaultEveRefreshTokenStorageHandler>(configured.CookieAuthenticationScheme);
+            }
 
             return builder.AddAuthentication(configured, oauthOptions =>
             {
@@ -149,6 +158,7 @@ namespace EVEClient.NET.Identity.Extensions.DependencyInjection
             builder.Services.TryAddScoped<IEveUserAccessor<EveOnlineUser>, EveUserAccessor>();
             builder.Services.TryAddScoped<IPostOAuthBehavior, DefaultSignInPostOAuthBehavior>();
             builder.Services.TryAddScoped<ITokenHandlerProvider, DefaultTokenHandlerProvider>();
+            builder.Services.TryAddSingleton<IStorageKeyGenerator, DefaultStorageKeyGenerator>();
 
             builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped(typeof(IUserClaimsTransformator), typeof(SubjectClaimNormalizator)));
             builder.Services.TryAddEnumerable(ServiceDescriptor.Scoped(typeof(IUserClaimsTransformator), typeof(EveOnlineUserClaimsEnricher)));
@@ -247,7 +257,7 @@ namespace EVEClient.NET.Identity.Extensions.DependencyInjection
 
         private static AuthenticationBuilder AddOAuthCookieScheme(this AuthenticationBuilder builder, Action<EveAuthenticationOAuthOptions> oauthOptions)
         {
-            builder.AddOAuth<EveAuthenticationOAuthOptions, EveOAuthHandler>(EveAuthenticationCookieDefaults.OAuth.DefaultOAuthAuthenticationSchemeName, EveAuthenticationCookieDefaults.OAuth.DefaultOAuthAuthenticationSchemeDisplayName, oauthOptions);
+            builder.AddOAuth<EveAuthenticationOAuthOptions, EveOAuthHandler>(EveAuthenticationCookieDefaults.OAuth.DefaultOAuthSchemeName, EveAuthenticationCookieDefaults.OAuth.DefaultOAuthSchemeDisplayName, oauthOptions);
 
             return builder;
         }

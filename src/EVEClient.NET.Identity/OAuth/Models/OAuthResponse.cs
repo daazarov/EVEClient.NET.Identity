@@ -4,6 +4,8 @@ namespace EVEClient.NET.Identity.OAuth
 {
     public class OAuthResponse : IDisposable
     {
+        private bool _disposedValue;
+
         /// <summary>
         /// Indicates whether the response is successful.
         /// </summary>
@@ -27,12 +29,15 @@ namespace EVEClient.NET.Identity.OAuth
         /// <summary>
         /// Gets the Json representation of the body response.
         /// </summary>
-        internal JsonDocument JsonResponse { get; }
+        internal JsonDocument JsonResponse { get; private set; }
 
         public OAuthResponse(HttpResponseMessage httpResponseMessage, string bodyResponse)
         {
             HttpResponse = httpResponseMessage;
-            JsonResponse = JsonDocument.Parse(bodyResponse);
+
+            JsonResponse = string.IsNullOrEmpty(bodyResponse)
+                ? JsonDocument.Parse("{}")
+                : JsonDocument.Parse(bodyResponse);
 
             if (!httpResponseMessage.IsSuccessStatusCode)
             {
@@ -42,7 +47,7 @@ namespace EVEClient.NET.Identity.OAuth
 
         public void Dispose()
         {
-            JsonResponse.Dispose();
+            Dispose(true);
         }
 
         protected virtual void PrepareStandardError(JsonDocument response)
@@ -57,6 +62,19 @@ namespace EVEClient.NET.Identity.OAuth
             if (root.TryGetProperty("error_description", out var errorDescription))
             {
                 ErrorDescription = errorDescription.ToString();
+            }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    JsonResponse.Dispose();
+                }
+
+                _disposedValue = true;
             }
         }
     }

@@ -1,15 +1,31 @@
-﻿using EVEClient.NET.Extensions;
-using EVEClient.NET.Identity.Stores;
+﻿using System.Security.Cryptography;
+using System.Text;
 
 namespace EVEClient.NET.Identity.Stores
 {
     public class DefaultStorageKeyGenerator : IStorageKeyGenerator
     {
-        private const string Separator = ":";
+        internal static readonly char[] chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_=+".ToCharArray();
 
-        public string GenerateKey(string subjectId, string sessionId, string dataType)
+        public string GenerateKey(int length = 32)
         {
-            return string.Join(Separator, subjectId, sessionId, dataType).SHA256();
+            var data = new byte[4 * length];
+            var result = new StringBuilder(length);
+
+            using (var generator = RandomNumberGenerator.Create())
+            {
+                generator.GetBytes(data);
+            }
+
+            for (int i = 0; i < length; i++)
+            {
+                var rnd = BitConverter.ToUInt32(data, i * 4);
+                var idx = rnd % chars.Length;
+
+                result.Append(chars[idx]);
+            }
+
+            return result.ToString();
         }
     }
 }

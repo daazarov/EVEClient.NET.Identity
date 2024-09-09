@@ -2,13 +2,24 @@
 
 namespace EVEClient.NET.Identity.Services
 {
-    public abstract class TokenResult<T>
+    public class TokenResult
+    {
+        public static TokenResult Test => new TokenResult();
+    }
+
+    public class TokenResult<T>
     {
         private readonly T? _token;
         private readonly bool _success;
 
+        /// <summary>
+        /// Gets the <see cref="Exception"/>.
+        /// </summary>
         public Exception? Error { get; protected set; }
 
+        /// <summary>
+        /// Gets the error message.
+        /// </summary>
         public string? ErrorMessage { get; protected set; }
 
         // <summary>

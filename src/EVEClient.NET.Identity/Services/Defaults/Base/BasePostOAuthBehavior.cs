@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,7 @@ using EVEClient.NET.Identity.Extensions;
 
 namespace EVEClient.NET.Identity.Services
 {
-    public abstract class PostOAuthBehavior : IPostOAuthBehavior
+    public abstract class BasePostOAuthBehavior : IPostOAuthBehavior
     {
         private Exception? _initFailure;
         private bool _initSucceeded;
@@ -18,7 +19,7 @@ namespace EVEClient.NET.Identity.Services
         /// <summary>
         /// Gets the <see cref="ILogger"/>
         /// </summary>
-        protected ILogger<PostOAuthBehavior> Logger { get; }
+        protected ILogger<BasePostOAuthBehavior> Logger { get; }
 
         /// <summary>
         /// If oauth ticket was produced, authenticate was successful.
@@ -26,12 +27,12 @@ namespace EVEClient.NET.Identity.Services
         public bool OAuthAuthenticationSucceeded => OAuthAuthenticateResult.Succeeded;
 
         /// <summary>
-        /// Gets or sets the <see cref="HttpContext"/>.
+        /// Gets or sets the <see cref="Microsoft.AspNetCore.Http.HttpContext"/>.
         /// </summary>
-        protected HttpContext Context { get; private set; } = default!;
+        protected HttpContext HttpContext { get; private set; } = default!;
 
         /// <summary>
-        /// Gets or sets the <see cref="OAuthAuthenticateResult"/> after passing the external authentication.
+        /// Gets or sets the <see cref="AuthenticateResult"/> after passing the external authentication.
         /// </summary>
         protected AuthenticateResult OAuthAuthenticateResult { get; private set; } = default!;
 
@@ -49,7 +50,7 @@ namespace EVEClient.NET.Identity.Services
         /// Gets the issuer that should be used when any claims are issued.
         /// </summary>
         /// <value>
-        /// The <c>ClaimsIssuer</c> configured in <see cref="EVEAuthenticationOAuthOptions"/>, if configured.
+        /// The <c>ClaimsIssuer</c> configured in <see cref="EveAuthenticationOAuthOptions"/>, if configured.
         /// </value>
         protected virtual string? ClaimsIssuer => OAuthOptions.ClaimsIssuer;
 
@@ -68,7 +69,7 @@ namespace EVEClient.NET.Identity.Services
         /// </summary>
         protected string SubjectId { get; private set; } = default!;
 
-        public PostOAuthBehavior(ILogger<PostOAuthBehavior> logger, IOptionsMonitor<EveAuthenticationOAuthOptions> options)
+        public BasePostOAuthBehavior(ILogger<BasePostOAuthBehavior> logger, IOptionsMonitor<EveAuthenticationOAuthOptions> options)
         {
             ArgumentNullException.ThrowIfNull(logger);
             ArgumentNullException.ThrowIfNull(options);
@@ -83,8 +84,8 @@ namespace EVEClient.NET.Identity.Services
             ArgumentNullException.ThrowIfNull(context);
 
             OAuthAuthenticateResult = externalAuthenticateResult;
-            Context = context;
-            OAuthOptions = OptionsMonitor.Get(EveAuthenticationCookieDefaults.OAuth.DefaultOAuthAuthenticationSchemeName);
+            HttpContext = context;
+            OAuthOptions = OptionsMonitor.Get(EveAuthenticationCookieDefaults.OAuth.DefaultOAuthSchemeName);
 
             if (OAuthAuthenticationSucceeded)
             {
@@ -128,14 +129,28 @@ namespace EVEClient.NET.Identity.Services
             }
             else
             {
-                await HandleErrors(PostOAuthBehaviorResult.Failed(_initFailure ?? new AuthenticationFailureException("Unhandled exception during initialization.")));
+                await HandleErrors(PostOAuthBehaviorResult.Failed(_initFailure ?? new Exception("Unhandled exception during initialization.")));
             }
         }
 
+        /// <summary>
+        /// Allows derived types to handle remote authentication results.
+        /// </summary>
+        /// <returns>The <see cref="Task{TResult}"/> that will contain the <see cref="PostOAuthBehaviorResult"/> when completed..</returns>
         protected abstract Task<PostOAuthBehaviorResult> HandleRemoteAuthenticationResult();
 
+        /// <summary>
+        /// Called after a successful result of a <see cref="HandleRemoteAuthenticationResult()"/> call.
+        /// </summary>
+        /// <param name="result">The <see cref="PostOAuthBehaviorResult"/>.</param>
+        /// <returns>The <see cref="Task"/>.</returns>
         protected abstract Task HandleSuccessfullBehaviorResult(PostOAuthBehaviorResult result);
 
+        /// <summary>
+        /// Called after an unsuccessful result of a <see cref="HandleRemoteAuthenticationResult()"/> call.
+        /// </summary>
+        /// <param name="result">The <see cref="PostOAuthBehaviorResult"/>.</param>
+        /// <returns>The <see cref="Task"/>.</returns>
         protected abstract Task HandleErrors(PostOAuthBehaviorResult result);
     }
 }

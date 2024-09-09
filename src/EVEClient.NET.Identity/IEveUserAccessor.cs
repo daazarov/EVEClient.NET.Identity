@@ -9,12 +9,12 @@ namespace EVEClient.NET.Identity
         /// <summary>
         /// Indicates whether there is an authenticated EVE user regardless of the <see cref="IdentityMode"/>.
         /// </summary>
-        [MemberNotNullWhen(true, nameof(User))]
+        [MemberNotNullWhen(true, nameof(Current))]
         bool IsAuthenticated { get; }
         
         /// <summary>
         /// Gets the current EVE user.
         /// </summary>
-        TUser? User { get; }
+        TUser? Current { get; }
     }
 }

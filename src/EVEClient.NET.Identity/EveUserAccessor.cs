@@ -6,7 +6,7 @@ using EVEClient.NET.Identity.Extensions;
 
 namespace EVEClient.NET.Identity
 {
-    public class EveUserAccessor : UserAccessorBase<EveOnlineUser>
+    public class EveUserAccessor : EveUserAccessorBase<EveOnlineUser>
     {
         public EveUserAccessor(IHttpContextAccessor contextAccessor) : base(contextAccessor)
         {

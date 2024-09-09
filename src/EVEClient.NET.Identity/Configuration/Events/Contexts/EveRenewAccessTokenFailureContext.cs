@@ -14,7 +14,7 @@ namespace EVEClient.NET.Identity.Configuration
         /// <summary>
         /// Gets the <see cref="RefreshAccessTokenResponse"/>.
         /// </summary>
-        public required RefreshAccessTokenResponse OAuthTokenResponse { get; init; }
+        public RefreshAccessTokenResponse? OAuthTokenResponse { get; init; }
 
         /// <summary>
         /// Gets the reason for the failure.
@@ -29,6 +29,6 @@ namespace EVEClient.NET.Identity.Configuration
         /// <summary>
         /// Gets the normalized subject (an EVE Character ID).
         /// </summary>
-        public string? SubjectId { get; init; }
+        public required string SubjectId { get; init; }
     }
 }

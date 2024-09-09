@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EVEClient.NET.Identity" Version="8.0.0-alpha.1" />
+    <PackageReference Include="EVEClient.NET.Identity" Version="8.0.0-beta.1" />
   </ItemGroup>
 
 </Project>
